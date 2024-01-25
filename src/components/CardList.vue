@@ -1,14 +1,11 @@
-<script setup >
-  import Card from './Card.vue'
+<script setup>
+import Card from './Card.vue'
 
-  defineProps({
-    items: Array
-  })
+defineProps({
+  items: Array
+})
 
-  function onClickAdd(){
-    alert('Dobav')
-  }
-
+const emit = defineEmits(['addToFavorite'])
 
 </script>
 
@@ -17,12 +14,13 @@
     <Card
       v-for='item in items'
       :key='item.id'
+      :id='item.id'
       :price='item.price'
       :title='item.title'
       :image-url='item.imageUrl'
       :is-added='true'
       :is-favorite='item.isFavorite'
-      :on-click-add='onClickAdd'
+      :on-click-favorite='() => emit("addToFavorite",item)'
     />
 
   </div>
