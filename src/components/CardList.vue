@@ -21,7 +21,7 @@
       :title='item.title'
       :image-url='item.imageUrl'
       :is-added='true'
-      :is-favorite='true'
+      :is-favorite='item.isFavorite'
       :on-click-add='onClickAdd'
     />
 
