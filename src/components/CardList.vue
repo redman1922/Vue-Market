@@ -1,5 +1,9 @@
-<script setup lang='ts'>
+<script setup >
   import Card from './Card.vue'
+
+  defineProps({
+    items: Array
+  })
 
   function onClickAdd(){
     alert('Dobav')
@@ -11,9 +15,11 @@
 <template>
   <div class='grid grid-cols-4 gap-5'>
     <Card
-      :price='1499'
-      title='Мужсские Кроссовки Nike Mid Suede'
-      image-url='/sneakers/sneakers-1.jpg'
+      v-for='item in items'
+      :key='item.id'
+      :price='item.price'
+      :title='item.title'
+      :image-url='item.imageUrl'
       :is-added='true'
       :is-favorite='true'
       :on-click-add='onClickAdd'
