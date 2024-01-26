@@ -2,16 +2,49 @@
 import Header from '@/components/Header.vue'
 import CardList from '@/components/CardList.vue'
 import Drawer from '@/components/Drawer.vue'
-import { onMounted, provide, reactive, ref, watch } from 'vue'
+import { computed, onMounted, provide, reactive, ref, watch } from 'vue'
 import axios from 'axios'
 
 const items = ref([])
+const cart = ref([])
+const drawerOpen = ref(false)
+const totalPrice = computed(
+    () => cart.value.reduce((acc, item) => acc + item.price, 0)
+)
+const vatPrice = computed(
+  () => Math.round((totalPrice.value * 5) / 100)
+)
 
+const closeDrawer = () => {
+  drawerOpen.value = false
+}
+
+const openDrawer = () => {
+  drawerOpen.value = true
+}
 
 const filters = reactive({
   sortBy: 'title',
   searchQuery: ''
 })
+
+const addToCart = (item) => {
+  cart.value.push(item)
+  item.isAdded = true
+}
+
+const removeFromCart = (item) => {
+  cart.value.splice(cart.value.indexOf(item), 1)
+  item.isAdded = false
+}
+
+const onClickAddPlus = (item) => {
+  if (!item.isAdded) {
+    addToCart(item)
+  } else {
+    removeFromCart(item)
+  }
+}
 
 const onChangeSelect = event => {
   filters.sortBy = event.target.value
@@ -50,7 +83,7 @@ const addToFavorite = async (item) => {
         parentId: item.id
       }
       item.isFavorite = true
-      const { data } = await axios.post(`https://d871c66b172f8d2c.mokky.dev/favorites`, obj);
+      const { data } = await axios.post(`https://d871c66b172f8d2c.mokky.dev/favorites`, obj)
       item.favoriteId = data.id
     } else {
       item.isFavorite = false
@@ -86,22 +119,50 @@ const fetchItems = async () => {
   }
 }
 
+
+
+
 onMounted(async () => {
+  const localCart = localStorage.getItem('cart')
+  cart.value = localCart ? JSON.parse(localCart) : []
+
   await fetchItems()
   await fetchFavorites()
+
+  items.value = items.value.map((item) => ({
+    ...item,
+    isAdded: cart.value.some((cartItem) => cartItem.id === item.id)
+  }))
 })
+
 watch(filters, fetchItems)
 
+watch(cart, () => {
+  items.value = items.value.map((item) => ({
+    ...item,
+    isAdded: false
+  }))
+})
 
-provide('addToFavorite', addToFavorite)
+watch(cart, () => {
+  localStorage.setItem('cart', JSON.stringify(cart.value))
+}, { deep: true })
+
+provide('cart', {
+  cart,
+  closeDrawer,
+  openDrawer,
+  addToCart,
+  removeFromCart
+})
 </script>
 
 <template>
-    <Drawer />
+  <Drawer v-if='drawerOpen' :total-price='totalPrice' :vat-price='vatPrice' />
   <div
     class='bg-white w-4/5 m-auto rounded-xl shadow-xl mt-14'
   >
-    <Header />
+    <Header :total-price='totalPrice' @open-drawer='openDrawer' />
     <div class='p-10'>
       <div class='flex justify-between items-center'>
         <h2 class='text-3xl font-bold mb-8'>Все кроссовки</h2>
@@ -121,7 +182,7 @@ provide('addToFavorite', addToFavorite)
         </div>
       </div>
       <div class='mt-10'>
-        <CardList :items='items' @addToFavorite='addToFavorite' />
+        <CardList :items='items' @add-to-favorite='addToFavorite' @add-to-cart='onClickAddPlus' />
       </div>
 
     </div>
