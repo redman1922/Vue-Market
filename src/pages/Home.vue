@@ -33,9 +33,8 @@ const onChangeSearchInput = debounce((event) => {
 const addToFavorite = async (item) => {
   try {
     if (!item.isFavorite) {
-      //!
       const obj = {
-        item
+        item_id: item.id
       }
 
       item.isFavorite = true
@@ -85,7 +84,7 @@ const fetchItems = async () => {
       params.title = `*${filters.searchQuery}*`
     }
 
-    const { data } = await axios.get(`https://604781a0efa572c1.mokky.dev/items`, {
+    const { data } = await axios.get(`https://d871c66b172f8d2c.mokky.dev/items`, {
       params
     })
 
