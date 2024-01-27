@@ -1,19 +1,15 @@
 <script setup>
-import Header from '@/components/Header.vue'
-import CardList from '@/components/CardList.vue'
-import Drawer from '@/components/Drawer.vue'
-import { computed, onMounted, provide, reactive, ref, watch } from 'vue'
-import axios from 'axios'
+import { ref, provide, watch, computed } from 'vue'
 
-const items = ref([])
+import Header from './components/Header.vue'
+import Drawer from './components/Drawer.vue'
+
+/* Корзина (START) */
 const cart = ref([])
 const drawerOpen = ref(false)
-const totalPrice = computed(
-    () => cart.value.reduce((acc, item) => acc + item.price, 0)
-)
-const vatPrice = computed(
-  () => Math.round((totalPrice.value * 5) / 100)
-)
+
+const totalPrice = computed(() => cart.value.reduce((acc, item) => acc + item.price, 0))
+const vatPrice = computed(() => Math.round((totalPrice.value * 5) / 100))
 
 const closeDrawer = () => {
   drawerOpen.value = false
@@ -22,11 +18,6 @@ const closeDrawer = () => {
 const openDrawer = () => {
   drawerOpen.value = true
 }
-
-const filters = reactive({
-  sortBy: 'title',
-  searchQuery: ''
-})
 
 const addToCart = (item) => {
   cart.value.push(item)
@@ -38,115 +29,13 @@ const removeFromCart = (item) => {
   item.isAdded = false
 }
 
-const onClickAddPlus = (item) => {
-  if (!item.isAdded) {
-    addToCart(item)
-  } else {
-    removeFromCart(item)
-  }
-}
-
-const onChangeSelect = event => {
-  filters.sortBy = event.target.value
-}
-
-const onChangeSearchInput = (event) => {
-  filters.searchQuery = event.target.value
-}
-
-const fetchFavorites = async () => {
-  try {
-    const { data: favorites } = await axios.get(`https://d871c66b172f8d2c.mokky.dev/favorites`
-    )
-    items.value = items.value.map(item => {
-      const favorite = favorites.find(favorites => favorites.parentId === item.id)
-
-      if (!favorite) {
-        return item
-      }
-      return {
-        ...item,
-        isFavorite: true,
-        favoriteId: favorite.id
-      }
-    })
-  } catch (err) {
-    console.log(err)
-  }
-}
-
-const addToFavorite = async (item) => {
-  try {
-
-    if (!item.isFavorite) {
-      const obj = {
-        parentId: item.id
-      }
-      item.isFavorite = true
-      const { data } = await axios.post(`https://d871c66b172f8d2c.mokky.dev/favorites`, obj)
-      item.favoriteId = data.id
-    } else {
-      item.isFavorite = false
-      await axios.delete(`https://d871c66b172f8d2c.mokky.dev/favorites/${item.favoriteId}`)
-      item.favoriteId = null
-    }
-  } catch (err) {
-    console.log(err)
-  }
-}
-
-const fetchItems = async () => {
-  try {
-    const params = {
-      sortBy: filters.sortBy
-    }
-
-    if (filters.searchQuery) {
-      params.title = `*${filters.searchQuery}*`
-    }
-
-    const { data } = await axios.get(`https://604781a0efa572c1.mokky.dev/items`,
-      { params }
-    )
-    items.value = data.map(obj => ({
-      ...obj,
-      isFavorite: false,
-      favoriteId: null,
-      isAdded: false
-    }))
-  } catch (err) {
-    console.log(err)
-  }
-}
-
-
-
-
-onMounted(async () => {
-  const localCart = localStorage.getItem('cart')
-  cart.value = localCart ? JSON.parse(localCart) : []
-
-  await fetchItems()
-  await fetchFavorites()
-
-  items.value = items.value.map((item) => ({
-    ...item,
-    isAdded: cart.value.some((cartItem) => cartItem.id === item.id)
-  }))
-})
-
-watch(filters, fetchItems)
-
-watch(cart, () => {
-  items.value = items.value.map((item) => ({
-    ...item,
-    isAdded: false
-  }))
-})
-
-watch(cart, () => {
-  localStorage.setItem('cart', JSON.stringify(cart.value))
-}, { deep: true })
+watch(
+  cart,
+  () => {
+    localStorage.setItem('cart', JSON.stringify(cart.value))
+  },
+  { deep: true }
+)
 
 provide('cart', {
   cart,
@@ -155,39 +44,18 @@ provide('cart', {
   addToCart,
   removeFromCart
 })
+
+/* Корзина (END) */
 </script>
 
 <template>
-  <Drawer v-if='drawerOpen' :total-price='totalPrice' :vat-price='vatPrice' />
-  <div
-    class='bg-white w-4/5 m-auto rounded-xl shadow-xl mt-14'
-  >
-    <Header :total-price='totalPrice' @open-drawer='openDrawer' />
-    <div class='p-10'>
-      <div class='flex justify-between items-center'>
-        <h2 class='text-3xl font-bold mb-8'>Все кроссовки</h2>
+  <Drawer v-if="drawerOpen" :total-price="totalPrice" :vat-price="vatPrice" />
 
-        <div class='flex gap-4'>
-          <select @change='onChangeSelect' class='py-2 px-3 border rounded-md outline-none'>
-            <option value='name'>По названию</option>
-            <option value='price'>По цене (дешево)</option>
-            <option value='-price'>По цене (дорого)</option>
-          </select>
-          <div class='relative'>
-            <img class='absolute left-4 top-3' src='/search.svg' alt='search'>
-            <input @input='onChangeSearchInput'
-                   class='border rounded-md py-1.5 pl-11 pr-4 outline-none focus:border-gray-400' type='text'
-                   placeholder='Поиск...' />
-          </div>
-        </div>
-      </div>
-      <div class='mt-10'>
-        <CardList :items='items' @add-to-favorite='addToFavorite' @add-to-cart='onClickAddPlus' />
-      </div>
+  <div class="bg-white w-4/5 m-auto rounded-xl shadow-xl mt-14">
+    <Header :total-price="totalPrice" @open-drawer="openDrawer" />
 
+    <div class="p-10">
+      <router-view></router-view>
     </div>
   </div>
 </template>
-
-<style scoped>
-</style>
